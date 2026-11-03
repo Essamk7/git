@@ -1,0 +1,38 @@
+name: Windows RDP (No Account)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  launch-rdp:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: تفعيل سطح المكتب البعيد وإعداد بيانات الدخول
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          $SecurePassword = ConvertTo-SecureString "RdpPass@2026!" -AsPlainText -Force
+          Set-LocalUser -Name "runneradmin" -Password $SecurePassword
+
+      - name: فتح نفق الاتصال المباشر عبر Bore
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
+          Expand-Archive -Path "bore.zip" -DestinationPath "." -Force
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.txt" -RedirectStandardError "bore-err.txt" -WindowStyle Hidden
+          Start-Sleep -Seconds 6
+          Write-Host "========================================="
+          Write-Host "بيانات الاتصال جاهزة:"
+          Get-Content "bore.txt" -ErrorAction SilentlyContinue
+          Get-Content "bore-err.txt" -ErrorAction SilentlyContinue
+          Write-Host "اسم المستخدم (Username): runneradmin"
+          Write-Host "كلمة المرور (Password): RdpPass@2026!"
+          Write-Host "========================================="
+
+      - name: إبقاء الخادم نشطاً
+        run: |
+          while ($true) {
+            Start-Sleep -Seconds 300
+            Write-Host "الجلسة لا تزال نشطة..."
+          }
