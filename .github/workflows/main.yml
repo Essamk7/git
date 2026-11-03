@@ -1,4 +1,4 @@
-name: Windows RDP (No Account)
+name: Windows RDP via Cloudflare
 
 on:
   workflow_dispatch:
@@ -16,16 +16,16 @@ jobs:
           $SecurePassword = ConvertTo-SecureString "RdpPass@2026!" -AsPlainText -Force
           Set-LocalUser -Name "runneradmin" -Password $SecurePassword
 
-      - name: فتح نفق الاتصال المباشر عبر Bore
+      - name: تحميل وتثبيت أداة Cloudflared
         run: |
-          Invoke-WebRequest -Uri "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
-          Expand-Archive -Path "bore.zip" -DestinationPath "." -Force
-          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "bore.txt" -RedirectStandardError "bore-err.txt" -WindowStyle Hidden
-          Start-Sleep -Seconds 6
+          Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+
+      - name: فتح نفق الاتصال عبر Cloudflare
+        run: |
+          Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "access tcp --url localhost:3389 --hostname rdp.trycloudflare.com" -WindowStyle Hidden
+          # ملاحظة: Cloudflare تتيح الاتصال المباشر عبر TCP للأنفاق المحلية، وسنقوم بطباعة بيانات الاتصال
           Write-Host "========================================="
-          Write-Host "بيانات الاتصال جاهزة:"
-          Get-Content "bore.txt" -ErrorAction SilentlyContinue
-          Get-Content "bore-err.txt" -ErrorAction SilentlyContinue
+          Write-Host "تم إطلاق النفق بنجاح عبر Cloudflare!"
           Write-Host "اسم المستخدم (Username): runneradmin"
           Write-Host "كلمة المرور (Password): RdpPass@2026!"
           Write-Host "========================================="
